@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title data-i18n="app.title">Ocean Nomad — Raft Survival</title>
+  <meta name="description" content="Raft Survival: Ocean Nomad — survival rakit di laut terbuka. Craft, bangun, hadapi badai dan hiu di browser." />
+  <meta property="og:title" content="Raft Survival: Ocean Nomad" />
+  <meta property="og:description" content="Survival rakit di laut terbuka. Craft, bangun, multiplayer host-authoritative." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#07141a" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2307141a' stroke='%237FB7B0' stroke-width='2'/></svg>" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/hud.css" />
+</head>
+<body>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="logo">OCEAN NOMAD</div>
+    <div class="status" data-i18n="menu.loadingOcean">Menyiapkan laut…</div>
+    <div class="bar"><div id="progress" style="width:0%"></div></div>
+  </div>
+
+    <div id="touch-controls" class="hidden" aria-hidden="true">
+    <div class="stick-base" id="stick-base">
+      <div class="stick-knob"></div>
+    </div>
+    <div class="touch-actions">
+      <button type="button" id="touch-jump" class="touch-btn">⤒</button>
+      <button type="button" id="touch-sprint" class="touch-btn">Lari</button>
+      <button type="button" id="touch-interact" class="touch-btn">E</button>
+      <button type="button" id="touch-attack" class="touch-btn primary">Aksi</button>
+      <button type="button" id="touch-craft" class="touch-btn">Tab</button>
+    </div>
+    <div class="touch-hotbar">
+      <button type="button" class="touch-slot" id="touch-slot-0">1</button>
+      <button type="button" class="touch-slot" id="touch-slot-1">2</button>
+      <button type="button" class="touch-slot" id="touch-slot-2">3</button>
+      <button type="button" class="touch-slot" id="touch-slot-3">4</button>
+      <button type="button" class="touch-slot" id="touch-slot-4">5</button>
+    </div>
+    <div class="touch-look-hint" data-i18n="hint.touchLook">Geser kanan = lihat</div>
+  </div>
+
+  <canvas id="game-canvas" aria-label="Game view"></canvas>
+
+    <div id="hud" class="hidden" role="region" aria-label="Game HUD">
+    <div id="crew-panel" class="crew-panel">
+      <div class="crew-title" data-i18n="menu.crew">Kru</div>
+      <div id="crew-list"></div>
+    </div>
+    <div id="conn-indicator" class="conn-indicator">○ —</div>
+    <div id="debug-overlay" class="debug-overlay hidden">
+      <div id="pos">X:0 Y:0 Z:0</div>
+      <div id="fps">— FPS</div>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="prompt" hidden><kbd></kbd><span></span></div>
+    <div id="slot-name" aria-live="polite"></div>
+    <div id="status-bars">
+      <div class="sbar"><span class="sbar-icon" aria-hidden="true">♥</span><span class="sbar-label" data-i18n="hud.hp">HP</span><div class="sbar-track"><div class="sbar-fill hp" id="bar-hp"></div></div></div>
+      <div class="sbar"><span class="sbar-icon" aria-hidden="true">🍖</span><span class="sbar-label" data-i18n="hud.hunger">Lapar</span><div class="sbar-track"><div class="sbar-fill hunger" id="bar-hunger"></div></div></div>
+      <div class="sbar"><span class="sbar-icon" aria-hidden="true">💧</span><span class="sbar-label" data-i18n="hud.thirst">Haus</span><div class="sbar-track"><div class="sbar-fill thirst" id="bar-thirst"></div></div></div>
+      <div class="sbar"><span class="sbar-icon" aria-hidden="true">⚡</span><span class="sbar-label" data-i18n="hud.stamina">Stamina</span><div class="sbar-track"><div class="sbar-fill stamina" id="bar-stamina"></div></div></div>
+      <div id="status-effects"></div>
+    </div>
+    <div id="hotbar">
+      <div class="slot selected" id="slot-0"><span class="key">1</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-1"><span class="key">2</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-2"><span class="key">3</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-3"><span class="key">4</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-4"><span class="key">5</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-5"><span class="key">6</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-6"><span class="key">7</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-7"><span class="key">8</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-8"><span class="key">9</span><span class="icon"></span><span class="count"></span></div>
+      <div class="slot" id="slot-9"><span class="key">0</span><span class="icon"></span><span class="count"></span></div>
+    </div>
+    <div id="info">
+      <div id="info-pos">X:0 Y:0 Z:0</div>
+      <div id="info-fps">60 FPS</div>
+      <div id="hint" data-i18n="hint.controls">Tab craft · RMB build · Hammer LMB place · Axe remove · E use</div>
+    </div>
+    <div id="disaster-warn" class="disaster-warn hidden" aria-live="assertive"></div>
+  <div id="toast"></div>
+    <div id="compass"><div id="compass-arrow">▲</div></div>
+  </div>
+
+  <!-- Radial build menu (RMB + hammer) -->
+  <div id="radial-build" class="hidden">
+    <div class="radial-center" id="radial-center">Floor</div>
+    <div class="radial-items" id="radial-items"></div>
+    <div class="radial-hint" data-i18n="hint.radial">Move to select · Release RMB to confirm · Scroll / 1–9</div>
+  </div>
+
+  <!-- Raft-style craft UI (Resources / Other only) -->
+  <div id="inv-panel" class="hidden">
+    <div class="raft-ui">
+      <div class="cat-rail" id="cat-rail"></div>
+      <div class="recipe-panel">
+        <div class="panel-title" id="cat-title" data-i18n="cat.resources">Resources</div>
+        <div class="recipe-list" id="recipe-list"></div>
+      </div>
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-head">
+          <span class="detail-icon" id="detail-icon">📏</span>
+          <div>
+            <div class="detail-name" id="detail-name">Plank</div>
+            <div class="detail-desc" id="detail-desc"></div>
+          </div>
+        </div>
+        <div class="requires-label" data-i18n="craft.requires">Requires</div>
+        <div class="requires-list" id="requires-list"></div>
+        <button type="button" id="btn-craft" class="craft-btn" data-i18n="craft.action.craft">Craft</button>
+      </div>
+      <div class="inv-panel-box">
+        <div class="panel-title" data-i18n="inv.title">Inventory</div>
+        <div class="inv-grid-raft" id="inv-grid"></div>
+      </div>
+    </div>
+    <div class="raft-ui-hint" data-i18n="hint.craftClose">Tab / Esc close · Crafting only (build = RMB)</div>
+  </div>
+
+  <div id="menu" class="menu-screen hidden" role="dialog" aria-label="Main menu">
+    <div class="menu-brand">
+      <h1>Ocean Nomad</h1>
+      <p class="tagline">Raft Survival</p>
+    </div>
+    <button id="btn-continue" class="btn-primary" data-i18n="menu.continue">Lanjutkan</button>
+    <div class="menu-row">
+      <button id="btn-play" class="btn-ghost" data-i18n="menu.newVoyage">Pelayaran baru</button>
+      <button id="btn-load" class="btn-ghost" data-i18n="menu.load">Muat</button>
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-mp">
+      <p class="menu-section-label">Multiplayer</p>
+      <input id="mp-name" type="text" maxlength="16" placeholder="Nama kru" class="mp-input" autocomplete="off" />
+      <div class="menu-row">
+        <button type="button" id="btn-mp-create" class="btn-ghost" data-i18n="menu.createRoom">Buat room</button>
+        <button type="button" id="btn-mp-join" class="btn-ghost" data-i18n="menu.joinRoom">Gabung</button>
+      </div>
+      <input id="mp-code-input" type="text" maxlength="8" placeholder="Kode room" class="mp-input" autocomplete="off" />
+      <p id="mp-config-hint" class="menu-sub" hidden></p>
+    </div>
+    <div class="seg lang-seg" role="group" aria-label="Language" style="margin-top:12px">
+      <button type="button" data-lang="id">Indonesia</button>
+      <button type="button" data-lang="en">English</button>
+    </div>
+    <div class="version">Ocean Nomad · v1.5</div>
+  </div>
+
+  <div id="mp-lobby" class="menu-screen hidden" role="dialog" aria-label="Lobby">
+    <h2 data-i18n="menu.lobbyTitle">Pelayaran bersama</h2>
+    <p class="tagline">ROOM <strong id="mp-code-display">—</strong></p>
+    <p id="mp-status" class="mp-status">Menyiapkan…</p>
+    <div class="lobby-crew" id="lobby-crew" data-i18n="menu.waitingCrew">Menunggu kru…</div>
+    <div class="menu-row">
+      <button type="button" id="btn-mp-start" class="btn-primary" data-i18n="menu.start">Mulai</button>
+      <button type="button" id="btn-mp-copy" class="btn-ghost" data-i18n="menu.copyCode">Salin kode</button>
+    </div>
+    <button type="button" id="btn-mp-back" class="btn-ghost" data-i18n="menu.back">Kembali</button>
+  </div>
+
+  <div id="save-slots" class="menu-screen hidden">
+    <h2 id="slots-title" data-i18n="menu.loadTitle">Muat</h2>
+    <div id="slot-list"></div>
+    <button id="btn-slots-back" class="secondary">Kembali</button>
+  </div>
+
+  <div id="pause-menu" class="menu-screen hidden" role="dialog" aria-label="Paused">
+    <h2 data-i18n="menu.paused">Jeda</h2>
+    <button id="btn-resume" data-i18n="menu.resume">Lanjut</button>
+    <button id="btn-save" class="secondary" data-i18n="menu.save">Simpan</button>
+    <div class="pause-row">
+      <label style="opacity:.75">Volume <input id="vol-master" type="range" min="0" max="100" value="70" style="width:120px;vertical-align:middle" aria-label="Master volume" /></label>
+      <button type="button" id="btn-mute" class="secondary" aria-label="Mute audio" data-i18n="menu.mute">Bisukan</button>
+    </div>
+    <div class="pause-row">
+      <span class="pause-label" data-i18n="menu.graphics">Grafis</span>
+      <div class="seg" role="group" aria-label="Kualitas grafis">
+        <button type="button" class="btn-quality" data-q="auto" aria-pressed="false" data-i18n="menu.qualityAuto">Otomatis</button>
+        <button type="button" class="btn-quality" data-q="low" aria-pressed="false" data-i18n="menu.qualityLow">Rendah</button>
+        <button type="button" class="btn-quality" data-q="medium" aria-pressed="false" data-i18n="menu.qualityMed">Sedang</button>
+        <button type="button" class="btn-quality" data-q="high" aria-pressed="false" data-i18n="menu.qualityHigh">Tinggi</button>
+      </div>
+    </div>
+    <p class="menu-sub pause-help" data-i18n="hint.pauseHelp">WASD gerak · mouse lihat · E ambil · Tab buat · RMB + palu bangun · Esc jeda</p>
+    <button id="btn-quit" class="secondary" data-i18n="menu.quit">Ke menu</button>
+  </div>
+
+  <div id="journal" class="menu-screen hidden">
+    <h2 data-i18n="menu.journal">Jurnal</h2>
+    <div id="journal-body" style="max-width:420px;margin:0 auto;text-align:left;max-height:50vh;overflow:auto"></div>
+    <button id="btn-journal-close" class="secondary" data-i18n="menu.close">Tutup</button>
+  </div>
+
+  <div id="ending-screen" class="menu-screen hidden">
+    <div class="menu-panel">
+      <h1>Pelabuhan tercapai</h1>
+      <p class="menu-sub">Perjalananmu berakhir di pelabuhan terakhir.</p>
+      <ul class="end-stats">
+        <li>Hari: <strong id="end-days">—</strong></li>
+        <li>Jarak: <strong id="end-dist">—</strong></li>
+        <li>Ukuran rakit: <strong id="end-cells">—</strong> sel</li>
+        <li>Bencana dilalui: <strong id="end-disasters">—</strong></li>
+        <li>Waktu main: <strong id="end-time">—</strong></li>
+      </ul>
+      <button type="button" class="btn primary" id="btn-ending-menu" data-i18n="menu.mainMenu">Menu utama</button>
+    </div>
+  </div>
+
+  <div id="death-menu" class="menu-screen hidden">
+    <h2 data-i18n="menu.deathTitle">Kamu tewas</h2>
+    <p class="tagline" data-i18n="menu.deathTag">Laut menelan pelaut lainnya.</p>
+    <button id="btn-respawn" data-i18n="menu.retry">Coba lagi</button>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/three.module.js",
+      "three/addons/": "./vendor/three/addons/"
+    }
+  }
+  </script>
+  <script type="module">
+    import { boot } from './src/core/BootManager.js';
+    boot(document.getElementById('game-canvas')).then(({ game, caps }) => {
+      if (import.meta.env?.DEV) window.OCEAN_NOMAD = game;
+      // Loading progress
+      const prog = document.getElementById('progress');
+      if (prog) prog.style.width = '100%';
+      document.getElementById('btn-journal-close')?.addEventListener('click', () => game._toggleJournal?.());
+      console.info('[Ocean Nomad] booted via BootManager', {
+        backend: game.renderCtx?.backend,
+        webgpuAvailable: !!caps.webgpu,
+        worker: !!caps.worker,
+        wasm: !!caps.wasm,
+        gpuTier: caps.gpuTier,
+        quality: game.quality
+      });
+    }).catch(err => {
+      console.error('[Ocean Nomad] boot failed', err);
+      const s = document.querySelector('#loading .status');
+      if (s) s.textContent = 'Failed to start: ' + (err?.message || err);
+    });
+  </script>
+</body>
+</html>

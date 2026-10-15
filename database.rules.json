@@ -1,0 +1,42 @@
+{
+  "rules": {
+    "rooms": {
+      "$code": {
+        ".read": "auth != null && (data.child('players').child(auth.uid).exists() || data.child('meta').child('host').val() === auth.uid || !data.exists())",
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['host', 'seed']) && newData.child('host').isString() && newData.child('seed').isNumber()",
+          "abandoned": {
+            ".write": "auth != null"
+          },
+          "started": {
+            ".write": "auth != null && data.parent().child('host').val() === auth.uid"
+          }
+        },
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['name', 'x', 'y', 'z', 'yaw', 'spd', 'hp']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 24 && newData.child('hp').isNumber() && newData.child('hp').val() >= 0 && newData.child('hp').val() <= 100 && newData.child('x').isNumber() && newData.child('y').isNumber() && newData.child('z').isNumber()"
+          }
+        },
+        "world": {
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid",
+          ".validate": "newData.hasChildren(['t'])"
+        },
+        "raft": {
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid"
+        },
+        "debris": {
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid"
+        },
+        "events": {
+          "$id": {
+            ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid) || (data.exists() && data.child('from').val() === auth.uid))",
+            ".validate": "newData.hasChildren(['type', 'from', 'at']) && newData.child('type').isString() && newData.child('type').val().length <= 32 && newData.child('at').isNumber()"
+          }
+        }
+      }
+    }
+  }
+}
